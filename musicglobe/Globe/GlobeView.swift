@@ -13,6 +13,40 @@ struct GlobeView: View {
   @StateObject private var viewModel = GlobeViewModel()
 
   var body: some View {
+    Group {
+      if !appState.isSpotifyConnected || appState.trackNodes.isEmpty {
+        // Show welcome screen if not connected or no data
+        WelcomeView()
+          .environmentObject(appState)
+      } else {
+        // Show globe view when we have data
+        globeContent
+      }
+    }
+    .onAppear {
+      viewModel.setup(with: appState)
+    }
+    .onChange(of: appState.trackNodes) { _, newNodes in
+      viewModel.updateNodes(newNodes)
+    }
+    .sheet(isPresented: $appState.showingTrackDetail) {
+      if let track = appState.selectedTrack {
+        TrackDetailView(track: track)
+          .environmentObject(appState)
+      }
+    }
+    .alert("Error", isPresented: $appState.showingError) {
+      Button("OK") {
+        appState.showingError = false
+      }
+    } message: {
+      if let error = appState.dataError {
+        Text(error)
+      }
+    }
+  }
+
+  private var globeContent: some View {
     ZStack {
       // White/light background
       Color(red: 0.98, green: 0.98, blue: 0.98)
@@ -33,43 +67,18 @@ struct GlobeView: View {
       )
       .ignoresSafeArea()
 
-      // Top bar
-      if !appState.isSpotifyConnected {
-        SpotifyConnectBanner()
-      }
-
-      Spacer()
-
-      // Now Playing Badge
-      if let playback = appState.currentPlayback, playback.isPlaying {
-        NowPlayingBadge(trackName: playback.currentTrack)
-          .padding(.bottom, 30)
-      }
-
       // Loading state
       if appState.isLoadingData {
         LoadingView()
       }
-    }
-    .onAppear {
-      viewModel.setup(with: appState)
-    }
-    .onChange(of: appState.albumNodes) { _, newNodes in
-      viewModel.updateNodes(newNodes)
-    }
-    .sheet(isPresented: $appState.showingAlbumDetail) {
-      if let album = appState.selectedAlbum {
-        AlbumDetailView(album: album)
-          .environmentObject(appState)
-      }
-    }
-    .alert("Error", isPresented: $appState.showingError) {
-      Button("OK") {
-        appState.showingError = false
-      }
-    } message: {
-      if let error = appState.dataError {
-        Text(error)
+
+      // Now Playing Badge
+      VStack {
+        Spacer()
+        if let playback = appState.currentPlayback, playback.isPlaying {
+          NowPlayingBadge(trackName: playback.currentTrack)
+            .padding(.bottom, 30)
+        }
       }
     }
   }

@@ -18,21 +18,21 @@ class GlobeViewModel: ObservableObject {
 
   // MARK: - Setup
   func setup(with appState: AppState) {
-    updateNodes(appState.albumNodes)
+    updateNodes(appState.trackNodes)
   }
 
   // MARK: - Update Nodes
-  func updateNodes(_ nodes: [AlbumNode]) {
-    globeScene.addAlbumNodes(nodes)
+  func updateNodes(_ nodes: [TrackNode]) {
+    globeScene.addTrackNodes(nodes)
 
-    // Load album cover images
+    // Load album cover images for tracks
     for node in nodes {
-      loadAlbumCover(for: node)
+      loadTrackCover(for: node)
     }
   }
 
-  // MARK: - Load Album Cover
-  private func loadAlbumCover(for node: AlbumNode) {
+  // MARK: - Load Track Cover
+  private func loadTrackCover(for node: TrackNode) {
     guard let coverURL = node.coverArtURL else { return }
 
     // Cancel existing task if any
@@ -46,7 +46,7 @@ class GlobeViewModel: ObservableObject {
           }
         }
       } catch {
-        print("Failed to load image for \(node.albumName): \(error)")
+        print("Failed to load image for \(node.trackName): \(error)")
       }
     }
 
@@ -65,13 +65,13 @@ class GlobeViewModel: ObservableObject {
       selectedNodeId = nodeId
       globeScene.highlightNode(nodeId, highlighted: true)
 
-      // Find album and show detail
-      if let album = appState.albumNodes.first(where: { $0.id == nodeId }) {
+      // Find track and show detail
+      if let track = appState.trackNodes.first(where: { $0.id == nodeId }) {
         // Add haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
 
-        appState.selectAlbum(album)
+        appState.selectTrack(track)
       }
     } else {
       // Tap on empty space - deselect

@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct musicglobeApp: App {
+  @StateObject private var appState = AppState()
+
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      GlobeView()
+        .environmentObject(appState)
     }
   }
 }

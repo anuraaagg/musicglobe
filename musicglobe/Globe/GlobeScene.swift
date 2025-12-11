@@ -94,23 +94,24 @@ class GlobeScene {
     nodesContainer.runAction(rotation)
   }
 
-  // MARK: - Add Album Nodes
-  func addAlbumNodes(_ nodes: [AlbumNode]) {
+  // MARK: - Add Track Nodes
+  func addTrackNodes(_ nodes: [TrackNode]) {
     // Clear existing nodes
     nodesContainer.childNodes.forEach { $0.removeFromParentNode() }
     albumNodeMap.removeAll()
 
-    for albumNode in nodes {
-      let scnNode = createAlbumSphereNode(for: albumNode)
+    for trackNode in nodes {
+      let scnNode = createTrackCardNode(for: trackNode)
       nodesContainer.addChildNode(scnNode)
-      albumNodeMap[albumNode.id] = scnNode
+      albumNodeMap[trackNode.id] = scnNode
     }
   }
 
-  // MARK: - Create Album Card Node
-  private func createAlbumSphereNode(for album: AlbumNode) -> SCNNode {
-    // Create flat card (plane) for album - aspect ratio like album cover
-    let cardSize: CGFloat = 0.8  // Base size
+  // MARK: - Create Track Card Node
+  private func createTrackCardNode(for track: TrackNode) -> SCNNode {
+    // Create flat card (plane)
+    // Use popularity-based scaling from TrackNode
+    let cardSize: CGFloat = CGFloat(track.nodeSize)
     let plane = SCNPlane(width: cardSize, height: cardSize)
 
     let material = SCNMaterial()
@@ -126,15 +127,13 @@ class GlobeScene {
 
     let node = SCNNode(geometry: plane)
     node.position = SCNVector3(
-      album.position.x,
-      album.position.y,
-      album.position.z
+      track.position.x,
+      track.position.y,
+      track.position.z
     )
-    node.name = album.id
+    node.name = track.id
 
     // Orient card to lay flat on the globe surface (tangent to sphere)
-    // Calculate the normal vector from globe center to card position
-    let normal = SCNVector3(album.position.x, album.position.y, album.position.z)
     node.look(at: SCNVector3(0, 0, 0))  // Face the center
 
     // Add slight random rotation for visual variety

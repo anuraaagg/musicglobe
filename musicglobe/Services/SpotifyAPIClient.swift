@@ -22,83 +22,57 @@ class SpotifyAPIClient {
     return try await makeRequest(endpoint: endpoint)
   }
 
+  /*
   // MARK: - Recently Played
   func fetchRecentlyPlayed(limit: Int = 50) async throws -> [AlbumPlayData] {
-    let endpoint = "\(baseURL)/me/player/recently-played?limit=\(limit)"
-    let response: RecentlyPlayedResponse = try await makeRequest(endpoint: endpoint)
-
-    // Group by album and count plays
-    var albumMap: [String: AlbumPlayData] = [:]
-
-    for item in response.items {
-      let album = item.track.album
-      let playedAt = ISO8601DateFormatter().date(from: item.playedAt) ?? Date()
-
-      if var existing = albumMap[album.id] {
-        existing.playCount += 1
-        if playedAt < existing.firstPlayedAt {
-          existing.firstPlayedAt = playedAt
-        }
-        albumMap[album.id] = existing
-      } else {
-        albumMap[album.id] = AlbumPlayData(
-          album: album,
-          firstPlayedAt: playedAt,
-          playCount: 1,
-          genres: album.genres ?? []
-        )
-      }
-    }
-
-    return Array(albumMap.values)
+    // ... implementation removed for now ...
+    return []
   }
-
+  
   // MARK: - Top Albums
   func fetchTopAlbums(limit: Int = 20) async throws -> [AlbumPlayData] {
-    // Fetch top artists to get their albums
-    let endpoint = "\(baseURL)/me/top/artists?limit=\(limit)&time_range=medium_term"
-    let response: TopItemsResponse<SpotifyArtist> = try await makeRequest(endpoint: endpoint)
+    // ... implementation removed for now ...
+    return []
+  }
+  */
 
-    // Convert artists to album play data (simplified)
-    return response.items.enumerated().map { index, artist in
-      let mockAlbum = SpotifyAlbum(
-        id: artist.id,
-        name: "\(artist.name) - Top Tracks",
-        artists: [artist],
-        images: [],
-        releaseDate: nil,
-        genres: artist.genres
-      )
+  // MARK: - Recent Tracks
+  func fetchRecentTracks(limit: Int = 50) async throws -> [TrackPlayData] {
+    let endpoint = "\(baseURL)/me/player/recently-played?limit=\(limit)"
+    let response: RecentlyPlayedTracksResponse = try await makeRequest(endpoint: endpoint)
 
-      return AlbumPlayData(
-        album: mockAlbum,
-        firstPlayedAt: Date().addingTimeInterval(-Double(index) * 86400),
-        playCount: 20 - index,
-        genres: artist.genres ?? []
+    // Date formatter for Spotify timestamps
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+    return response.items.compactMap { item in
+      // Allow duplicates so we show full history (50 nodes)
+      // Clumps of the same artist/song will naturally form clusters due to placement logic
+
+      let date = dateFormatter.date(from: item.playedAt) ?? Date()
+
+      return TrackPlayData(
+        trackId: item.track.id,
+        trackName: item.track.name,
+        artistName: item.track.artists.first?.name ?? "Unknown",
+        albumName: item.track.album.name,
+        albumId: item.track.album.id,
+        coverArtURL: item.track.album.images.first?.url,
+        genreTags: [],  // Note: Genres require separate artist fetch, skipping for speed
+        playedAt: date,
+        durationMs: item.track.durationMs,
+        popularity: item.track.popularity,
+        spotifyUri: item.track.uri
       )
     }
   }
 
+  /*
   // MARK: - Recent Albums (Combined)
   func fetchRecentAlbums() async throws -> [AlbumPlayData] {
-    async let recent = fetchRecentlyPlayed()
-    async let top = fetchTopAlbums()
-
-    let (recentAlbums, topAlbums) = try await (recent, top)
-
-    // Merge and deduplicate
-    var combined: [String: AlbumPlayData] = [:]
-
-    for album in recentAlbums {
-      combined[album.album.id] = album
-    }
-
-    for album in topAlbums where combined[album.album.id] == nil {
-      combined[album.album.id] = album
-    }
-
-    return Array(combined.values).sorted { $0.playCount > $1.playCount }
+      return []
   }
+  */
 
   // MARK: - Album Details
   func fetchAlbumTracks(albumId: String) async throws -> [Track] {
@@ -109,7 +83,7 @@ class SpotifyAPIClient {
 
   // MARK: - Playback
   func playTrack(uri: String) async throws {
-    guard let accessToken = await authManager.accessToken else {
+    guard let accessToken = authManager.accessToken else {
       throw APIError.unauthorized
     }
 
@@ -130,10 +104,8 @@ class SpotifyAPIClient {
 
     // 204 = success, 404 = no active device
     if httpResponse.statusCode == 404 {
-      // Fallback: open Spotify app
-      if let url = URL(
-        string: uri.replacingOccurrences(of: "spotify:track:", with: "spotify://track/"))
-      {
+      // Fallback: open Spotify app directly with the URI
+      if let url = URL(string: uri) {
         await MainActor.run {
           #if os(iOS)
             UIApplication.shared.open(url)
@@ -142,6 +114,39 @@ class SpotifyAPIClient {
       }
     } else if httpResponse.statusCode >= 400 {
       throw APIError.playbackFailed
+    }
+  }
+
+  // MARK: - Playlists
+  func fetchUserPlaylists() async throws -> [SpotifyPlaylist] {
+    let endpoint = "\(baseURL)/me/playlists?limit=50"
+    let response: PlaylistResponse = try await makeRequest(endpoint: endpoint)
+    return response.items
+  }
+
+  func fetchPlaylistTracks(playlistId: String, limit: Int = 50) async throws -> [TrackPlayData] {
+    let endpoint = "\(baseURL)/playlists/\(playlistId)/tracks?limit=\(limit)"
+    let response: PlaylistTracksResponse = try await makeRequest(endpoint: endpoint)
+    
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+    return response.items.compactMap { item in
+      let date = dateFormatter.date(from: item.addedAt) ?? Date()
+      
+      return TrackPlayData(
+        trackId: item.track.id,
+        trackName: item.track.name,
+        artistName: item.track.artists.first?.name ?? "Unknown",
+        albumName: item.track.album.name,
+        albumId: item.track.album.id,
+        coverArtURL: item.track.album.images.first?.url,
+        genreTags: [],
+        playedAt: date,
+        durationMs: item.track.durationMs,
+        popularity: item.track.popularity,
+        spotifyUri: item.track.uri
+      )
     }
   }
 
