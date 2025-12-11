@@ -15,30 +15,42 @@ class GlobeScene {
   let cameraNode: SCNNode
   let nodesContainer: SCNNode
 
+  // New hierarchy nodes
+  let autoRotationNode: SCNNode
+  let manualRotationNode: SCNNode
+
   private var albumNodeMap: [String: SCNNode] = [:]
 
   // MARK: - Initialization
   init() {
     scene = SCNScene()
 
+    // 1. Setup Node Hierarchy
+    // root -> autoRotation -> manualRotation -> (globe + cards)
+
+    autoRotationNode = SCNNode()
+    manualRotationNode = SCNNode()
+    nodesContainer = SCNNode()
+
+    scene.rootNode.addChildNode(autoRotationNode)
+    autoRotationNode.addChildNode(manualRotationNode)
+    manualRotationNode.addChildNode(nodesContainer)
+
     // Create invisible globe (just for positioning reference)
     let globeGeometry = SCNSphere(radius: 5.0)
     globeGeometry.segmentCount = 100
 
-    // Invisible material - white theme
+    // Invisible material
     let material = SCNMaterial()
     material.diffuse.contents = UIColor.clear
     material.transparency = 0.0
-
     globeGeometry.materials = [material]
 
     globeNode = SCNNode(geometry: globeGeometry)
-    globeNode.opacity = 0.0  // Completely invisible
-    scene.rootNode.addChildNode(globeNode)
+    globeNode.opacity = 0.0
 
-    // Container for album nodes
-    nodesContainer = SCNNode()
-    scene.rootNode.addChildNode(nodesContainer)
+    // Add globe to manual rotation node so it spins with drag
+    manualRotationNode.addChildNode(globeNode)
 
     // Setup camera
     cameraNode = SCNNode()
@@ -49,16 +61,16 @@ class GlobeScene {
     cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
     scene.rootNode.addChildNode(cameraNode)
 
-    // Setup lighting for white theme
+    // Setup lighting
     setupLighting()
 
-    // Add subtle rotation animation to container
+    // Start Auto-Rotation
     addGlobeRotation()
   }
 
   // MARK: - Lighting
   private func setupLighting() {
-    // Bright ambient light for white theme
+    // Bright ambient light
     let ambientLight = SCNNode()
     ambientLight.light = SCNLight()
     ambientLight.light?.type = .ambient
@@ -88,10 +100,12 @@ class GlobeScene {
 
   // MARK: - Container Rotation
   private func addGlobeRotation() {
+    // Rotate autoRotationNode continuously
+    // 120 seconds per full revolution (Slow and smooth)
     let rotation = SCNAction.repeatForever(
-      SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 180)
+      SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 120)
     )
-    nodesContainer.runAction(rotation)
+    autoRotationNode.runAction(rotation)
   }
 
   // MARK: - Add Track Nodes
@@ -109,16 +123,13 @@ class GlobeScene {
 
   // MARK: - Create Track Card Node
   private func createTrackCardNode(for track: TrackNode) -> SCNNode {
-    // Create flat card (plane)
-    // Use popularity-based scaling from TrackNode
     let cardSize: CGFloat = CGFloat(track.nodeSize)
     let plane = SCNPlane(width: cardSize, height: cardSize)
 
     let material = SCNMaterial()
-    material.diffuse.contents = UIColor.white  // Placeholder, will be replaced with album art
+    material.diffuse.contents = UIColor.white
     material.isDoubleSided = false
 
-    // Add subtle shadow/border
     material.ambient.contents = UIColor(white: 0.95, alpha: 1.0)
     material.specular.contents = UIColor(white: 0.3, alpha: 1.0)
     material.shininess = 0.1
@@ -133,14 +144,20 @@ class GlobeScene {
     )
     node.name = track.id
 
-    // Orient card to lay flat on the globe surface (tangent to sphere)
-    node.look(at: SCNVector3(0, 0, 0))  // Face the center
+    node.look(at: SCNVector3(0, 0, 0))
 
-    // Add slight random rotation for visual variety
+    // Fix orientation: look(at) makes -Z face the target.
+    // We want the plane's front (+Z) to face AWAY from center (towards camera).
+    // So we rotate it 180 degrees around Y after look(at).
+    node.localRotate(by: SCNQuaternion(0, 1, 0, 0))  // Actually SCNNode look(at) usually points -Z.
+    // Plane geometry is in XY plane.
+    // If we look at 0,0,0, the node's -Z points to 0,0,0.
+    // The plane faces +Z. So the plane faces AWAY from 0,0,0. This is actually correct for a globe surface!
+
+    // Add slight random rotation for visual variety (local Z axis)
     let randomTilt = Float.random(in: -0.1...0.1)
     node.eulerAngles.z = randomTilt
 
-    // Add subtle hover animation
     addHoverAnimation(to: node)
 
     return node
@@ -157,19 +174,14 @@ class GlobeScene {
     let material = SCNMaterial()
     material.diffuse.contents = image
     material.isDoubleSided = false
-
-    // Add subtle shadow effect
     material.multiply.contents = UIColor(white: 0.95, alpha: 1.0)
-
     geometry.materials = [material]
   }
 
   // MARK: - Selection
   func selectAlbumNode(node: SCNNode) {
-    // Remove any existing selection border
     node.childNode(withName: "selectionBorder", recursively: false)?.removeFromParentNode()
 
-    // Create a slightly larger plane as border
     let borderSize: CGFloat = 0.88
     let border = SCNPlane(width: borderSize, height: borderSize)
     let material = SCNMaterial()
@@ -179,9 +191,8 @@ class GlobeScene {
 
     let borderNode = SCNNode(geometry: border)
     borderNode.name = "selectionBorder"
-    borderNode.position = SCNVector3(0, 0, -0.01)  // Slightly behind the card
+    borderNode.position = SCNVector3(0, 0, -0.01)
 
-    // Subtle pulse animation
     let pulse = SCNAction.sequence([
       SCNAction.fadeOpacity(to: 0.7, duration: 0.6),
       SCNAction.fadeOpacity(to: 1.0, duration: 0.6),
@@ -200,18 +211,14 @@ class GlobeScene {
     guard let scnNode = albumNodeMap[nodeId] else { return }
 
     if highlighted {
-      // Scale up slightly
       let scaleAction = SCNAction.scale(to: 1.15, duration: 0.3)
       scaleAction.timingMode = .easeOut
       scnNode.runAction(scaleAction)
-
       selectAlbumNode(node: scnNode)
     } else {
-      // Scale back
       let scaleAction = SCNAction.scale(to: 1.0, duration: 0.3)
       scaleAction.timingMode = .easeOut
       scnNode.runAction(scaleAction)
-
       deselectAlbumNode(node: scnNode)
     }
   }
@@ -225,25 +232,25 @@ class GlobeScene {
     node.runAction(SCNAction.repeatForever(sequence))
   }
 
-  // MARK: - Camera Control
+  // MARK: - Camera / Interaction Control
   func rotateCamera(by delta: CGPoint) {
+    // Apply rotation only to manualRotationNode
+    // This stacks on top of autoRotationNode
     let rotationY = SCNAction.rotateBy(x: 0, y: CGFloat(delta.x) * 0.01, z: 0, duration: 0.1)
     let rotationX = SCNAction.rotateBy(x: CGFloat(delta.y) * 0.01, y: 0, z: 0, duration: 0.1)
 
-    nodesContainer.runAction(rotationY)
-    globeNode.runAction(rotationY)
+    manualRotationNode.runAction(rotationY)
 
     // Limit vertical rotation
-    let currentX = nodesContainer.eulerAngles.x + Float(delta.y) * 0.01
+    let currentX = manualRotationNode.eulerAngles.x + Float(delta.y) * 0.01
     if abs(currentX) < Float.pi / 2 {
-      nodesContainer.runAction(rotationX)
-      globeNode.runAction(rotationX)
+      manualRotationNode.runAction(rotationX)
     }
   }
 
   func zoomCamera(scale: Float) {
     let newZ = cameraNode.position.z * scale
-    let clampedZ = max(10, min(25, newZ))  // Limit zoom range
+    let clampedZ = max(10, min(25, newZ))
     cameraNode.position.z = clampedZ
   }
 
@@ -259,7 +266,6 @@ class GlobeScene {
         return nodeName
       }
     }
-
     return nil
   }
 }

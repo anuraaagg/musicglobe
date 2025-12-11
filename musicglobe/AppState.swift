@@ -80,14 +80,38 @@ class AppState: ObservableObject {
       let playlists = try await spotifyAPI.fetchUserPlaylists()
 
       var tracks: [TrackPlayData] = []
-
-      if let firstPlaylist = playlists.first {
-        print("✅ Found playlist: \(firstPlaylist.name). Fetching tracks...")
-        tracks = try await spotifyAPI.fetchPlaylistTracks(playlistId: firstPlaylist.id, limit: 50)
+      
+      if playlists.isEmpty {
+          print("⚠️ No playlists found. Falling back to recent history.")
+          tracks = try await spotifyAPI.fetchRecentTracks(limit: 50)
       } else {
-        print("⚠️ No playlists found. Falling back to recent history.")
-        tracks = try await spotifyAPI.fetchRecentTracks(limit: 50)
+          // Aggregate tracks from valid playlists until we have enough
+          for playlist in playlists.prefix(5) { // Check first 5 playlists
+              if tracks.count >= 50 { break }
+              
+              print("📂 Fetching tracks from: \(playlist.name)")
+              let playlistTracks = try await spotifyAPI.fetchPlaylistTracks(playlistId: playlist.id, limit: 50)
+              
+              // Filter out empty/invalid tracks if any
+              let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
+              tracks.append(contentsOf: validTracks)
+          }
+          
+          // If still minimal data (e.g. all playlists empty), fallback to history
+          if tracks.count < 10 {
+               print("⚠️ Playlists yielded few tracks. Adding recent history...")
+               let history = try await spotifyAPI.fetchRecentTracks(limit: 50)
+               tracks.append(contentsOf: history)
+          }
       }
+      
+      // Cap at 50 nodes to maintain performance/aesthetics
+      if tracks.count > 50 {
+          tracks = Array(tracks.prefix(50))
+      }
+      
+      // Shuffle for variety
+      tracks.shuffle()
 
       print("✅ Got \(tracks.count) tracks for globe")
 
