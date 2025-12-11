@@ -1,0 +1,27 @@
+//
+//  Info.plist additions needed
+//  Add these to your Info.plist for Spotify OAuth redirect
+//
+
+/*
+Add to Info.plist:
+
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLName</key>
+        <string>com.musicglobe.auth</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>musicglobe</string>
+        </array>
+    </dict>
+</array>
+
+<key>LSApplicationQueriesSchemes</key>
+<array>
+    <string>spotify</string>
+</array>
+*/
