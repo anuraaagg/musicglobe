@@ -1,196 +1,179 @@
-# Music Globe Setup Guide
+# 🎵 Music Globe
 
-## 🎵 Welcome to Music Globe!
+A beautiful 3D visualization of your Spotify music history using SceneKit and SwiftUI.
 
-Your 3D interactive music history visualization powered by Spotify.
+![Platform](https://img.shields.io/badge/platform-iOS-lightgrey)
+![Swift](https://img.shields.io/badge/Swift-5.9-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
----
+## ✨ Features
 
-## 📋 Prerequisites
+- 🌍 **3D Interactive Globe** - Rotate, zoom, and explore your music in 3D space
+- 🎨 **Minimalist White Theme** - Clean, modern Apple-style design
+- 🎴 **Flat Album Cards** - Album covers displayed as elegant flat cards
+- 🎵 **Spotify Integration** - OAuth 2.0 with PKCE authentication
+- 📊 **Smart Placement** - Albums positioned by genre and listening timeline
+- 🎯 **Tap to Explore** - View album details and play tracks
+- ⚡ **Performance Optimized** - Actor-based image caching, smooth 60fps
 
-1. **Xcode 15+** with iOS 17+ SDK
-2. **Spotify Developer Account** (free)
-3. **Active Spotify Premium Account** (for playback features)
+## 📱 Screenshots
 
----
+*Coming soon - Connect your Spotify to generate personalized screenshots!*
 
-## 🔧 Setup Instructions
+## 🚀 Getting Started
 
-### Step 1: Create Spotify App
+### Prerequisites
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Click **"Create App"**
-3. Fill in:
-   - **App Name:** Music Globe
-   - **App Description:** 3D visualization of music history
-   - **Redirect URI:** `musicglobe://callback`
-4. Click **"Save"**
-5. Copy your **Client ID**
+- Xcode 15.0+
+- iOS 17.0+
+- Spotify Developer Account (free)
+- Active Spotify account
 
-### Step 2: Configure the App
+### Installation
 
-1. Open `SpotifyAuthManager.swift`
-2. Replace `YOUR_SPOTIFY_CLIENT_ID` with your actual Client ID:
-   ```swift
-   private let clientId = "your_actual_client_id_here"
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/musicglobe.git
+   cd musicglobe
    ```
 
-### Step 3: Add Info.plist Entries
+2. **Open in Xcode**
+   ```bash
+   open musicglobe.xcodeproj
+   ```
 
-1. Open your project in Xcode
-2. Select the `musicglobe` target
-3. Go to the **Info** tab
-4. Add these URL Types:
-   - **Identifier:** `com.musicglobe.auth`
-   - **URL Schemes:** `musicglobe`
-5. Add to Queried URL Schemes:
-   - `spotify`
+3. **Set up Spotify Developer App**
+   - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   - Click **"Create App"**
+   - Fill in:
+     - **App Name:** Music Globe
+     - **App Description:** 3D visualization of music history
+     - **Redirect URI:** `musicglobe://callback`
+   - Click **"Save"**
+   - Copy your **Client ID**
 
-Or manually add to Info.plist:
+4. **Add Client ID to the app**
+   - Open `musicglobe/Services/SpotifyAuthManager.swift`
+   - Replace line 17:
+     ```swift
+     private let clientId = "YOUR_ACTUAL_CLIENT_ID_HERE"
+     ```
 
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>CFBundleURLName</key>
-        <string>com.musicglobe.auth</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>musicglobe</string>
-        </array>
-    </dict>
-</array>
+5. **Configure Info.plist**
+   - Select `musicglobe` target → **Info** tab
+   - Add **URL Type**:
+     - **Identifier:** `com.musicglobe.auth`
+     - **URL Schemes:** `musicglobe`
+   - Add **Queried URL Schemes**:
+     - `spotify`
+   
+   Or manually add to Info.plist (see `Info-plist-additions.txt`)
 
-<key>LSApplicationQueriesSchemes</key>
-<array>
-    <string>spotify</string>
-</array>
-```
+6. **Build and Run**
+   ```bash
+   # Command + R in Xcode
+   # Or via terminal:
+   xcodebuild -project musicglobe.xcodeproj -scheme musicglobe -destination 'platform=iOS Simulator,name=iPhone 15'
+   ```
 
-### Step 4: Build and Run
+## 🎮 Usage
 
-1. Open `musicglobe.xcodeproj` in Xcode
-2. Select your device or simulator
-3. Press **Cmd + R** to build and run
-4. Tap **"Connect to Spotify"** when the app launches
-5. Log in with your Spotify credentials
-6. Watch your music history come to life! 🌍✨
+1. Launch the app
+2. Tap **"Connect to Spotify"**
+3. Authorize the app
+4. Watch your music history populate the globe!
 
----
-
-## 🎮 How to Use
-
-### Globe Screen
+**Controls:**
 - **Drag** → Rotate the globe
 - **Pinch** → Zoom in/out
-- **Tap a node** → View album details
+- **Tap album** → View details & play tracks
 
-### Album Detail Screen
-- **Scroll** → Browse tracks
-- **Tap a track** → Play on Spotify
-- **Swipe back** → Return to globe
-
----
-
-## 🎨 Features
-
-✅ **3D Interactive Globe** with your music history
-✅ **Smart Node Placement** based on:
-   - Timeline (latitude)
-   - Genre clustering (longitude)
-   - Play frequency (size)
-✅ **Beautiful Animations** - nodes hover and glow
-✅ **Genre Color Coding** - different colors per genre
-✅ **Spotify Integration** - full playback control
-✅ **Album Details** - cover art, track list, stats
-
----
-
-## 🐛 Troubleshooting
-
-### "Failed to connect to Spotify"
-- Make sure your Client ID is correct
-- Check that redirect URI matches exactly: `musicglobe://callback`
-- Verify URL schemes are added to Info.plist
-
-### "No active device"
-- Open Spotify app on your device
-- Start playing any song
-- Return to Music Globe and try again
-
-### "Failed to load music data"
-- Check your internet connection
-- Make sure you have listening history on Spotify
-- Try logging out and back in
-
-### Album covers not loading
-- This is normal - they load progressively
-- Check your internet connection
-
----
-
-## 🚀 Next Steps
-
-Want to enhance your Music Globe? Try:
-
-- Add more scopes for saved albums
-- Implement search functionality
-- Add timeline filtering
-- Create custom color palettes
-- Add audio visualizations
-
----
-
-## 📝 File Structure
+## 🏗️ Architecture
 
 ```
 musicglobe/
 ├── App/
-│   ├── AppState.swift              # Central state manager
+│   ├── AppState.swift              # Central state management
 │   └── musicglobeApp.swift         # App entry point
 ├── Models/
-│   ├── AlbumNode.swift             # 3D node model
+│   ├── AlbumNode.swift             # 3D album node model
 │   └── SpotifyModels.swift         # API response models
 ├── Services/
-│   ├── SpotifyAuthManager.swift    # OAuth PKCE auth
-│   ├── SpotifyAPIClient.swift      # API requests
-│   ├── ImageCache.swift            # Image caching
-│   └── NodePlacementEngine.swift   # Placement logic
+│   ├── SpotifyAuthManager.swift    # OAuth 2.0 PKCE auth
+│   ├── SpotifyAPIClient.swift      # API client
+│   ├── ImageCache.swift            # Actor-based caching
+│   └── NodePlacementEngine.swift   # Globe placement logic
 ├── Globe/
 │   ├── GlobeScene.swift            # SceneKit 3D scene
 │   ├── GlobeView.swift             # SwiftUI wrapper
-│   └── GlobeViewModel.swift        # Globe logic
+│   └── GlobeViewModel.swift        # Interaction logic
 ├── AlbumDetail/
 │   ├── AlbumDetailView.swift       # Detail screen
 │   └── AlbumDetailViewModel.swift  # Detail logic
 └── UIComponents/
-    ├── LoadingView.swift           # Loading state
-    ├── NowPlayingBadge.swift       # Now playing UI
-    └── SpotifyConnectBanner.swift  # Connect button
+    ├── LoadingView.swift
+    ├── NowPlayingBadge.swift
+    └── SpotifyConnectBanner.swift
 ```
 
----
+**Pattern:** MVVM (Model-View-ViewModel)  
+**State:** Combine + ObservableObject  
+**3D:** SceneKit  
+**UI:** SwiftUI  
 
-## 🔐 Security Notes
+## 🎨 Design
 
-- Access tokens are stored in **Keychain** (secure)
-- PKCE flow is used (no client secret needed)
-- No server required
-- All data stays on device
+- **Theme:** Minimalist white
+- **Background:** `#FAFAFA`
+- **Typography:** SF Pro (system font)
+- **Cards:** Flat album art planes oriented tangent to sphere
+- **Animation:** Smooth transitions, hover effects, subtle rotations
 
----
+## 🔐 Security
+
+- ✅ OAuth 2.0 with PKCE (no client secret needed)
+- ✅ Tokens stored in **Keychain** (secure)
+- ✅ No server required
+- ✅ All data stays on device
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This is a demo app for learning purposes.
-Make sure to comply with Spotify's Developer Terms of Service.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by [Multiple States](https://multiplestates.co.uk/)
+- Built with [Spotify Web API](https://developer.spotify.com/documentation/web-api)
+- Uses Apple's SceneKit framework
+
+## 📞 Support
+
+For issues or questions:
+- Open an [Issue](https://github.com/YOUR_USERNAME/musicglobe/issues)
+- Check existing [Discussions](https://github.com/YOUR_USERNAME/musicglobe/discussions)
+
+## 🗺️ Roadmap
+
+- [ ] Add time period filtering
+- [ ] Implement search functionality
+- [ ] Custom color themes
+- [ ] Export as image/video
+- [ ] Playlist creation from selection
+- [ ] Audio visualization overlay
+- [ ] Social sharing
 
 ---
 
-## 🎉 Enjoy Your Music Globe!
+**Built with ❤️ using SwiftUI, SceneKit, and the Spotify Web API**
 
-Questions? Check the code comments - they're comprehensive!
-
-Happy exploring! 🌍🎵✨
+*Visualize your musical journey in 3D* 🌍🎵✨
