@@ -15,7 +15,7 @@ class SpotifyAuthManager: NSObject, ObservableObject {
   static let shared = SpotifyAuthManager()
 
   // MARK: - Spotify App Credentials
-  private let clientId = "YOUR_SPOTIFY_CLIENT_ID"  // TODO: Replace with your Client ID
+  private let clientId = "6cb4bfa509364298879c274f72a869b6"  // TODO: Replace with your Client ID
   private let redirectURI = "musicglobe://callback"
 
   // MARK: - Required Scopes
