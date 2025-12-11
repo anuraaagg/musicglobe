@@ -75,13 +75,24 @@ struct TrackDetailView: View {
 
           // Play Button
           Button {
-            appState.playTrackFromNode(track)
+            if appState.audioPlayer.isPlaying {
+              appState.audioPlayer.pause()
+            } else {
+              appState.playTrackFromNode(track)
+            }
           } label: {
             HStack {
-              Image(systemName: "play.circle.fill")
-                .font(.system(size: 24))
-              Text("Play on Spotify")
-                .font(.system(size: 18, weight: .semibold))
+              Image(
+                systemName: appState.audioPlayer.isPlaying
+                  ? "pause.circle.fill" : "play.circle.fill"
+              )
+              .font(.system(size: 24))
+              Text(
+                track.previewUrl != nil
+                  ? (appState.audioPlayer.isPlaying ? "Pause Preview" : "Play Preview")
+                  : "Play on Spotify"
+              )
+              .font(.system(size: 18, weight: .semibold))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -101,6 +112,13 @@ struct TrackDetailView: View {
           }
           .padding(.horizontal, 40)
           .padding(.top, 20)
+          
+          if track.previewUrl == nil {
+            Text("Preview unavailable for this track")
+                .font(.system(size: 12))
+                .foregroundColor(.gray)
+                .padding(.top, 4)
+          }
 
           Spacer(minLength: 50)
         }

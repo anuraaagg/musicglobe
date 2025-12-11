@@ -17,44 +17,39 @@ class TrackPlacementEngine {
   func placeNodes(for tracks: [TrackPlayData]) -> [TrackNode] {
     guard !tracks.isEmpty else { return [] }
 
-    // 1. Sort by time (Most recent first)
-    // We want the listening history to flow from top (newest) to bottom (oldest)
-    // or wrap around nicely
-    let sortedTracks = tracks.sorted { $0.playedAt > $1.playedAt }  // Newest first
+    // Use Fibonacci Sphere algorithm for perfectly even distribution
+    // This avoids clustering ("clubbing") regardless of artist or time.
 
     var nodes: [TrackNode] = []
+    let n = Float(tracks.count)
+    let goldenRatio = (1.0 + sqrt(Float(5.0))) / 2.0
 
-    // 2. Identify Artist Clusters
-    // We'll assign each unique artist a specific longitude "slice" or anchor point
-    // to keep their songs somewhat grouped horizontally.
-    let artistNames = Set(sortedTracks.map { $0.artistName })
-    var artistAngles: [String: Float] = [:]
+    for (i, track) in tracks.enumerated() {
+      let i_float = Float(i)
 
-    // Distribute artists randomly around the equator (0-360 degrees) or use hash
-    for (index, artist) in artistNames.enumerated() {
-      // Pseudorandom consistent angle based on name hash
-      let hash = abs(artist.hashValue) % 360
-      artistAngles[artist] = Float(hash) - 180.0  // -180 to 180 range
-    }
+      // 1. Calculate y (vertical position) from 1 to -1
+      // We add a small offset to avoid the exact poles
+      let y = 1.0 - (i_float / (n - 1.0)) * 2.0
 
-    // 3. Calculate positions
-    for (index, track) in sortedTracks.enumerated() {
-      // Latitude: Time based
-      // Map index 0 (newest) -> Top Hemisphere (+degrees)
-      // Map index N (oldest) -> Bottom Hemisphere (-degrees)
-      // Range: -70 to +70 (avoiding distinct poles)
+      // 2. Calculate radius at this y
+      let radius = sqrt(1.0 - y * y)
 
-      let progress = Float(index) / Float(max(sortedTracks.count - 1, 1))
-      let latitude = 70.0 - (progress * 140.0)  // 70 down to -70
+      // 3. Calculate theta (longitude angle) using golden angle
+      let theta = 2.0 * Float.pi * i_float / goldenRatio
 
-      // Longitude: Artist based + Random jitter
-      // Get base angle for artist
-      let baseAngle = artistAngles[track.artistName] ?? 0.0
+      let x = cos(theta) * radius
+      let z = sin(theta) * radius
 
-      // Add jitter so tracks by same artist don't stack exactly on top of each other
-      // Jitter range: +/- 15 degrees
-      let jitter = Float.random(in: -15...15)
-      let longitude = baseAngle + jitter
+      // Convert Cartesian (x, y, z) to Spherical (Lat, Lon)
+      // Latitude: asin(y)
+      // Longitude: atan2(z, x)
+
+      let latRad = asin(y)
+      let lonRad = atan2(z, x)
+
+      // Convert to Degrees for TrackNode
+      let latitude = latRad * (180.0 / Float.pi)
+      let longitude = lonRad * (180.0 / Float.pi)
 
       // Create Node
       let node = TrackNode(

@@ -102,10 +102,12 @@ struct DetailedTrack: Codable {
   let durationMs: Int
   let uri: String
   let popularity: Int
+  let previewUrl: String?
 
   enum CodingKeys: String, CodingKey {
     case id, name, artists, album, uri, popularity
     case durationMs = "duration_ms"
+    case previewUrl = "preview_url"
   }
 }
 
@@ -223,6 +225,7 @@ struct TrackPlayData {
   let durationMs: Int
   let popularity: Int
   let spotifyUri: String
+  let previewUrl: String?
 }
 
 // MARK: - Playlist Models

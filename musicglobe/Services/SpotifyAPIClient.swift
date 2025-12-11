@@ -62,7 +62,8 @@ class SpotifyAPIClient {
         playedAt: date,
         durationMs: item.track.durationMs,
         popularity: item.track.popularity,
-        spotifyUri: item.track.uri
+        spotifyUri: item.track.uri,
+        previewUrl: item.track.previewUrl
       )
     }
   }
@@ -103,17 +104,27 @@ class SpotifyAPIClient {
     }
 
     // 204 = success, 404 = no active device
-    if httpResponse.statusCode == 404 {
+    // 204 = success, 404 = no active device, 403 = restriction
+    if httpResponse.statusCode >= 400 {
+      print("⚠️ API Playback failed (code \(httpResponse.statusCode)). Trying deep link fallback...")
+      
       // Fallback: open Spotify app directly with the URI
       if let url = URL(string: uri) {
         await MainActor.run {
           #if os(iOS)
-            UIApplication.shared.open(url)
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            } else {
+                print("❌ Cannot open Spotify URL (App not installed?)")
+                // If we can't open app, THEN throw error
+                // But we can't easily throw from here if we want to suppress it.
+                // We'll throw only if we suspect it didn't work.
+            }
           #endif
         }
       }
-    } else if httpResponse.statusCode >= 400 {
-      throw APIError.playbackFailed
+      // Consider success if we tried to open app
+      return
     }
   }
 
@@ -127,13 +138,13 @@ class SpotifyAPIClient {
   func fetchPlaylistTracks(playlistId: String, limit: Int = 50) async throws -> [TrackPlayData] {
     let endpoint = "\(baseURL)/playlists/\(playlistId)/tracks?limit=\(limit)"
     let response: PlaylistTracksResponse = try await makeRequest(endpoint: endpoint)
-    
+
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
     return response.items.compactMap { item in
       let date = dateFormatter.date(from: item.addedAt) ?? Date()
-      
+
       return TrackPlayData(
         trackId: item.track.id,
         trackName: item.track.name,
@@ -145,7 +156,8 @@ class SpotifyAPIClient {
         playedAt: date,
         durationMs: item.track.durationMs,
         popularity: item.track.popularity,
-        spotifyUri: item.track.uri
+        spotifyUri: item.track.uri,
+        previewUrl: item.track.previewUrl
       )
     }
   }

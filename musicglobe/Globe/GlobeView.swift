@@ -11,6 +11,7 @@ import SwiftUI
 struct GlobeView: View {
   @EnvironmentObject var appState: AppState
   @StateObject private var viewModel = GlobeViewModel()
+  @State private var lastScale: CGFloat = 1.0
 
   var body: some View {
     Group {
@@ -60,10 +61,18 @@ struct GlobeView: View {
         },
         onDrag: { delta in
           viewModel.handleDrag(delta: delta)
-        },
-        onPinch: { scale in
-          viewModel.handlePinch(scale: scale)
         }
+      )
+      .gesture(
+        MagnificationGesture()
+          .onChanged { value in
+            let delta = value / lastScale
+            lastScale = value
+            viewModel.handlePinch(scale: Float(1.0 / delta))
+          }
+          .onEnded { _ in
+            lastScale = 1.0
+          }
       )
       .ignoresSafeArea()
 
@@ -89,7 +98,6 @@ struct SceneKitView: UIViewRepresentable {
   let scene: SCNScene
   let onTap: (CGPoint, SCNView) -> Void
   let onDrag: (CGPoint) -> Void
-  let onPinch: (Float) -> Void
 
   func makeUIView(context: Context) -> SCNView {
     let scnView = SCNView()
@@ -99,24 +107,25 @@ struct SceneKitView: UIViewRepresentable {
     scnView.allowsCameraControl = false
     scnView.antialiasingMode = .multisampling4X
 
+    // Explicitly set camera
+    if let cameraNode = scene.rootNode.childNode(withName: "MainCamera", recursively: true) {
+      scnView.pointOfView = cameraNode
+    }
+
     // Add gesture recognizers
     let tapGesture = UITapGestureRecognizer(
       target: context.coordinator,
       action: #selector(Coordinator.handleTap(_:))
     )
+    tapGesture.delegate = context.coordinator
     scnView.addGestureRecognizer(tapGesture)
 
     let panGesture = UIPanGestureRecognizer(
       target: context.coordinator,
       action: #selector(Coordinator.handlePan(_:))
     )
+    panGesture.delegate = context.coordinator
     scnView.addGestureRecognizer(panGesture)
-
-    let pinchGesture = UIPinchGestureRecognizer(
-      target: context.coordinator,
-      action: #selector(Coordinator.handlePinch(_:))
-    )
-    scnView.addGestureRecognizer(pinchGesture)
 
     context.coordinator.scnView = scnView
 
@@ -128,26 +137,31 @@ struct SceneKitView: UIViewRepresentable {
   }
 
   func makeCoordinator() -> Coordinator {
-    Coordinator(onTap: onTap, onDrag: onDrag, onPinch: onPinch)
+    Coordinator(onTap: onTap, onDrag: onDrag)
   }
 
   // MARK: - Coordinator
-  class Coordinator {
+  class Coordinator: NSObject, UIGestureRecognizerDelegate {
     let onTap: (CGPoint, SCNView) -> Void
     let onDrag: (CGPoint) -> Void
-    let onPinch: (Float) -> Void
     weak var scnView: SCNView?
 
     private var lastPanLocation: CGPoint = .zero
 
     init(
       onTap: @escaping (CGPoint, SCNView) -> Void,
-      onDrag: @escaping (CGPoint) -> Void,
-      onPinch: @escaping (Float) -> Void
+      onDrag: @escaping (CGPoint) -> Void
     ) {
       self.onTap = onTap
       self.onDrag = onDrag
-      self.onPinch = onPinch
+    }
+
+    // Allow gestures to work together (e.g. Pan + Pinch)
+    func gestureRecognizer(
+      _ gestureRecognizer: UIGestureRecognizer,
+      shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+      return true
     }
 
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -171,17 +185,6 @@ struct SceneKitView: UIViewRepresentable {
         )
         onDrag(delta)
         lastPanLocation = location
-      default:
-        break
-      }
-    }
-
-    @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
-      switch gesture.state {
-      case .changed:
-        let scale = Float(1.0 / gesture.scale)
-        onPinch(scale)
-        gesture.scale = 1.0
       default:
         break
       }

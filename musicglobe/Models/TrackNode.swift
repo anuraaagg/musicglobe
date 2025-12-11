@@ -21,6 +21,7 @@ struct TrackNode: Identifiable, Codable, Equatable {
   let durationMs: Int
   let popularity: Int  // 0-100 from Spotify
   let spotifyUri: String
+  let previewUrl: String?
 
   // 3D Position
   var position: SIMD3<Float>
@@ -81,6 +82,7 @@ struct TrackNode: Identifiable, Codable, Equatable {
     durationMs: Int,
     popularity: Int,
     spotifyUri: String,
+    previewUrl: String? = nil,
     latitude: Float,
     longitude: Float,
     radius: Float = 5.2
@@ -97,6 +99,7 @@ struct TrackNode: Identifiable, Codable, Equatable {
     self.durationMs = durationMs
     self.popularity = popularity
     self.spotifyUri = spotifyUri
+    self.previewUrl = previewUrl
     self.latitude = latitude
     self.longitude = longitude
     self.radius = radius
@@ -138,6 +141,7 @@ extension TrackNode {
       durationMs: 248000,
       popularity: 85,
       spotifyUri: "spotify:track:preview123",
+      previewUrl: nil,
       latitude: 30.0,
       longitude: 45.0
     )

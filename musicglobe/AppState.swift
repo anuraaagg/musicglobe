@@ -31,6 +31,7 @@ class AppState: ObservableObject {
   let spotifyAuth = SpotifyAuthManager.shared
   let spotifyAPI = SpotifyAPIClient.shared
   let imageCache = ImageCache.shared
+  let audioPlayer = AudioPlayerService()
 
   init() {
     checkSpotifyConnection()
@@ -80,36 +81,43 @@ class AppState: ObservableObject {
       let playlists = try await spotifyAPI.fetchUserPlaylists()
 
       var tracks: [TrackPlayData] = []
-      
+
       if playlists.isEmpty {
-          print("⚠️ No playlists found. Falling back to recent history.")
-          tracks = try await spotifyAPI.fetchRecentTracks(limit: 50)
+        print("⚠️ No playlists found. Falling back to recent history.")
+        tracks = try await spotifyAPI.fetchRecentTracks(limit: 50)
       } else {
-          // Aggregate tracks from valid playlists until we have enough
-          for playlist in playlists.prefix(5) { // Check first 5 playlists
-              if tracks.count >= 50 { break }
-              
-              print("📂 Fetching tracks from: \(playlist.name)")
-              let playlistTracks = try await spotifyAPI.fetchPlaylistTracks(playlistId: playlist.id, limit: 50)
-              
-              // Filter out empty/invalid tracks if any
-              let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
-              tracks.append(contentsOf: validTracks)
-          }
+        // Aggregate tracks from valid playlists until we have enough
+        for playlist in playlists.prefix(10) {  // Check first 10 playlists
+          if tracks.count >= 100 { break }
+
+          print("📂 Fetching tracks from: \(playlist.name)")
+          // Spotify max limit per request is usually 50, so we might need multiple fetches
+          // For now we grab top 50 from each playlist to fill our 100 quota
+          let playlistTracks = try await spotifyAPI.fetchPlaylistTracks(
+            playlistId: playlist.id, limit: 50)
+
+          // Filter out empty/invalid tracks if any
+          let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
           
-          // If still minimal data (e.g. all playlists empty), fallback to history
-          if tracks.count < 10 {
-               print("⚠️ Playlists yielded few tracks. Adding recent history...")
-               let history = try await spotifyAPI.fetchRecentTracks(limit: 50)
-               tracks.append(contentsOf: history)
-          }
+          let previewCount = validTracks.filter { $0.previewUrl != nil }.count
+          print("📊 Playlist '\(playlist.name)': \(previewCount)/\(validTracks.count) have previews")
+          
+          tracks.append(contentsOf: validTracks)
+        }
+
+        // If still minimal data (e.g. all playlists empty), fallback to history
+        if tracks.count < 20 {
+          print("⚠️ Playlists yielded few tracks. Adding recent history...")
+          let history = try await spotifyAPI.fetchRecentTracks(limit: 50)
+          tracks.append(contentsOf: history)
+        }
       }
-      
-      // Cap at 50 nodes to maintain performance/aesthetics
-      if tracks.count > 50 {
-          tracks = Array(tracks.prefix(50))
+
+      // Cap at 100 nodes
+      if tracks.count > 100 {
+        tracks = Array(tracks.prefix(100))
       }
-      
+
       // Shuffle for variety
       tracks.shuffle()
 
@@ -150,6 +158,15 @@ class AppState: ObservableObject {
   }
 
   func playTrackFromNode(_ node: TrackNode) {
+    // 1. Try playing In-App Preview
+    if let previewUrlString = node.previewUrl, let url = URL(string: previewUrlString) {
+      print("🎵 Playing preview: \(node.trackName)")
+      audioPlayer.play(url: url)
+      return
+    }
+
+    // 2. Fallback to Spotify App Remote
+    print("⚠️ No preview URL. Falling back to Spotify App.")
     Task {
       do {
         try await spotifyAPI.playTrack(uri: node.spotifyUri)

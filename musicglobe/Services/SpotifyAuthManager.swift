@@ -196,19 +196,13 @@ class SpotifyAuthManager: NSObject, ObservableObject {
 extension SpotifyAuthManager: ASWebAuthenticationPresentationContextProviding {
   func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
     #if os(iOS)
-      // Safely derive a presentation anchor from the key window's windowScene.
-      // This avoids using the deprecated zero-arg initializer and satisfies main-actor isolation.
       let windowScene = UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
         .first
-      if let windowScene = windowScene {
-        // Create a temporary transparent window to serve as an anchor.
-        let window = UIWindow(windowScene: windowScene)
-        window.isHidden = false
-        return window
-      }
+      return windowScene?.windows.first(where: { $0.isKeyWindow }) ?? ASPresentationAnchor()
+    #else
+      return ASPresentationAnchor()
     #endif
-    return ASPresentationAnchor()
   }
 }
 

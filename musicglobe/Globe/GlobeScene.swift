@@ -54,11 +54,12 @@ class GlobeScene {
 
     // Setup camera
     cameraNode = SCNNode()
+    cameraNode.name = "MainCamera"
     cameraNode.camera = SCNCamera()
     cameraNode.camera?.zNear = 0.1
     cameraNode.camera?.zFar = 100
     cameraNode.camera?.fieldOfView = 60
-    cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
+    cameraNode.position = SCNVector3(x: 0, y: 0, z: 22)
     scene.rootNode.addChildNode(cameraNode)
 
     // Setup lighting
@@ -146,17 +147,14 @@ class GlobeScene {
 
     node.look(at: SCNVector3(0, 0, 0))
 
-    // Fix orientation: look(at) makes -Z face the target.
-    // We want the plane's front (+Z) to face AWAY from center (towards camera).
-    // So we rotate it 180 degrees around Y after look(at).
-    node.localRotate(by: SCNQuaternion(0, 1, 0, 0))  // Actually SCNNode look(at) usually points -Z.
-    // Plane geometry is in XY plane.
-    // If we look at 0,0,0, the node's -Z points to 0,0,0.
-    // The plane faces +Z. So the plane faces AWAY from 0,0,0. This is actually correct for a globe surface!
+    // Fix orientation: look(at) makes -Z face the target (center).
+    // This aligns the plane's normal (+Z) outward.
+    node.look(at: SCNVector3(0, 0, 0), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
 
-    // Add slight random rotation for visual variety (local Z axis)
-    let randomTilt = Float.random(in: -0.1...0.1)
-    node.eulerAngles.z = randomTilt
+    // Constraint: Billboard to camera?
+    // User wants "aligned straight".
+    // Let's ensure strict upright orientation relative to World Y, which look(at:up:) attempts.
+    // We REMOVE the random tilt.
 
     addHoverAnimation(to: node)
 
@@ -225,10 +223,12 @@ class GlobeScene {
 
   // MARK: - Hover Animation
   private func addHoverAnimation(to node: SCNNode) {
-    let moveUp = SCNAction.moveBy(x: 0, y: 0.05, z: 0, duration: 2.0)
-    moveUp.timingMode = .easeInEaseOut
-    let moveDown = moveUp.reversed()
-    let sequence = SCNAction.sequence([moveUp, moveDown])
+    // Move along Z axis (Normal/Outward from globe) for a "breathing" effect
+    // Previously was sliding on Y constraint
+    let moveOut = SCNAction.moveBy(x: 0, y: 0, z: 0.2, duration: 2.0)
+    moveOut.timingMode = .easeInEaseOut
+    let moveIn = moveOut.reversed()
+    let sequence = SCNAction.sequence([moveOut, moveIn])
     node.runAction(SCNAction.repeatForever(sequence))
   }
 
@@ -250,7 +250,8 @@ class GlobeScene {
 
   func zoomCamera(scale: Float) {
     let newZ = cameraNode.position.z * scale
-    let clampedZ = max(10, min(25, newZ))
+    // Widen clamps to allow more zoom in/out
+    let clampedZ = max(5, min(60, newZ))
     cameraNode.position.z = clampedZ
   }
 
