@@ -84,9 +84,17 @@ struct GlobeView: View {
       // Now Playing Badge
       VStack {
         Spacer()
-        if let playback = appState.currentPlayback, playback.isPlaying {
+        if let playback = appState.currentPlayback, playback.isPlaying || appState.audioPlayer.isPlaying {
+            // Show if either Spotify state or local player is active
+            // Note: playTrackNode updates both, but let's be safe
           NowPlayingBadge(trackName: playback.currentTrack)
+            .environmentObject(appState)
             .padding(.bottom, 30)
+            .onTapGesture {
+                if let node = appState.playingTrackNode {
+                    appState.selectTrack(node)
+                }
+            }
         }
       }
     }

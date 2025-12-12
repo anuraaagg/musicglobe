@@ -22,6 +22,7 @@ class AppState: ObservableObject {
   // MARK: - Playback State
   @Published var currentPlayback: UserPlayback?
   @Published var selectedTrack: TrackNode?
+  @Published var playingTrackNode: TrackNode?
 
   // MARK: - UI State
   @Published var showingTrackDetail: Bool = false
@@ -98,10 +99,10 @@ class AppState: ObservableObject {
 
           // Filter out empty/invalid tracks if any
           let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
-          
+
           let previewCount = validTracks.filter { $0.previewUrl != nil }.count
           print("📊 Playlist '\(playlist.name)': \(previewCount)/\(validTracks.count) have previews")
-          
+
           tracks.append(contentsOf: validTracks)
         }
 
@@ -158,10 +159,20 @@ class AppState: ObservableObject {
   }
 
   func playTrackFromNode(_ node: TrackNode) {
+    playingTrackNode = node
+
     // 1. Try playing In-App Preview
     if let previewUrlString = node.previewUrl, let url = URL(string: previewUrlString) {
       print("🎵 Playing preview: \(node.trackName)")
       audioPlayer.play(url: url)
+
+      // Update playback state UI
+      currentPlayback = UserPlayback(
+        currentTrack: node.trackName,
+        isPlaying: true,
+        deviceId: nil,
+        progressMs: 0
+      )
       return
     }
 
