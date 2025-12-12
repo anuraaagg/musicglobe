@@ -81,8 +81,10 @@ struct WelcomeView: View {
                     )
                 )
             )
-            .clipShape(Capsule()) // Ensure clean edges
+            .clipShape(Capsule())  // Ensure clean edges
           }
+          .accessibilityLabel("Connect with Spotify")
+          .accessibilityHint("Double tap to sign in with your Spotify account")
           .offset(dragOffset)
           .gesture(
             DragGesture()
