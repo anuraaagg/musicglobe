@@ -107,25 +107,39 @@ class SpotifyAPIClient {
     // 204 = success, 404 = no active device, 403 = restriction
     if httpResponse.statusCode >= 400 {
       print("⚠️ API Playback failed (code \(httpResponse.statusCode)). Trying deep link fallback...")
-      
+
       // Fallback: open Spotify app directly with the URI
       if let url = URL(string: uri) {
         await MainActor.run {
           #if os(iOS)
             if UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url)
+              UIApplication.shared.open(url)
             } else {
-                print("❌ Cannot open Spotify URL (App not installed?)")
-                // If we can't open app, THEN throw error
-                // But we can't easily throw from here if we want to suppress it.
-                // We'll throw only if we suspect it didn't work.
+              print("❌ Cannot open Spotify URL (App not installed?)")
+              // If we can't open app, THEN throw error
+              // But we can't easily throw from here if we want to suppress it.
+              // We'll throw only if we suspect it didn't work.
             }
           #endif
         }
       }
-      // Consider success if we tried to open app
-      return
     }
+  }
+
+  func pause() async throws {
+    guard let token = authManager.accessToken else { return }
+    var request = URLRequest(url: URL(string: "https://api.spotify.com/v1/me/player/pause")!)
+    request.httpMethod = "PUT"
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    let _ = try await URLSession.shared.data(for: request)
+  }
+
+  func resume() async throws {
+    guard let token = authManager.accessToken else { return }
+    var request = URLRequest(url: URL(string: "https://api.spotify.com/v1/me/player/play")!)
+    request.httpMethod = "PUT"
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    let _ = try await URLSession.shared.data(for: request)
   }
 
   // MARK: - Playlists

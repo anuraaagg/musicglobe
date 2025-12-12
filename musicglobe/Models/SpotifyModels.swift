@@ -167,10 +167,10 @@ struct TracksResponse: Codable {
 
 // MARK: - Playback State
 struct UserPlayback: Codable {
-  let currentTrack: String
-  let isPlaying: Bool
-  let deviceId: String?
-  let progressMs: Int
+  var currentTrack: String
+  var isPlaying: Bool
+  var deviceId: String?
+  var progressMs: Int
 }
 
 struct PlaybackDevice: Codable {

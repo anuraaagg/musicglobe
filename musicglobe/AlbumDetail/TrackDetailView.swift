@@ -12,117 +12,120 @@ struct TrackDetailView: View {
   @EnvironmentObject var appState: AppState
   @Environment(\.dismiss) var dismiss
 
+  // Track if this specific track is currently playing
+  private var isThisTrackPlaying: Bool {
+    appState.audioPlayer.isPlaying && appState.playingTrackNode?.trackId == track.trackId
+  }
+
   var body: some View {
     ZStack {
-      // Background
-      Color(red: 0.98, green: 0.98, blue: 0.98)
-        .ignoresSafeArea()
+      // Clean Gradient Background - no more liquid blur effect
+      LinearGradient(
+        colors: [
+          Color(red: 0.95, green: 0.93, blue: 0.91),
+          Color(red: 0.88, green: 0.86, blue: 0.84),
+          Color(red: 0.82, green: 0.78, blue: 0.76),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+      )
+      .ignoresSafeArea()
 
-      ScrollView {
-        VStack(spacing: 30) {
-          // Close button
-          HStack {
-            Spacer()
-            Button {
-              dismiss()
-            } label: {
-              Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(Color.black.opacity(0.6), Color.white)
-            }
-          }
-          .padding(.horizontal)
-          .padding(.top)
-
-          // Large Album Art
-          AsyncImage(url: track.coverArtURL) { image in
-            image
-              .resizable()
-              .aspectRatio(contentMode: .fill)
-          } placeholder: {
-            Rectangle()
-              .fill(Color.gray.opacity(0.1))
-              .overlay(ProgressView())
-          }
-          .frame(width: 300, height: 300)
-          .clipShape(RoundedRectangle(cornerRadius: 20))
-          .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
-
-          // Track Info
-          VStack(spacing: 8) {
-            Text(track.trackName)
-              .font(.system(size: 28, weight: .bold))
-              .foregroundColor(.black)
-              .multilineTextAlignment(.center)
-
-            Text(track.artistName)
-              .font(.system(size: 20, weight: .medium))
-              .foregroundColor(.black.opacity(0.7))
-
-            Text(track.albumName)
-              .font(.system(size: 16))
-              .foregroundColor(.black.opacity(0.5))
-              .multilineTextAlignment(.center)
-          }
-          .padding(.horizontal)
-
-          // Stats Badges
-          HStack(spacing: 15) {
-            StatBadge(icon: "clock", value: track.duration)
-            StatBadge(icon: "flame.fill", value: "\(track.popularity)")
-            StatBadge(icon: "calendar", value: formatDate(track.playedAt))
-          }
-
-          // Play Button
+      VStack(spacing: 0) {
+        // Header with close button - more padding
+        HStack {
+          Spacer()
           Button {
-            if appState.audioPlayer.isPlaying {
-              appState.audioPlayer.pause()
-            } else {
-              appState.playTrackFromNode(track)
-            }
+            dismiss()
           } label: {
-            HStack {
-              Image(
-                systemName: appState.audioPlayer.isPlaying
-                  ? "pause.circle.fill" : "play.circle.fill"
-              )
-              .font(.system(size: 24))
-              Text(
-                track.previewUrl != nil
-                  ? (appState.audioPlayer.isPlaying ? "Pause Preview" : "Play Preview")
-                  : "Play on Spotify"
-              )
-              .font(.system(size: 18, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-              LinearGradient(
-                colors: [
-                  Color(red: 0.11, green: 0.73, blue: 0.33),
-                  Color(red: 0.08, green: 0.6, blue: 0.28),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-              )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color(red: 0.11, green: 0.73, blue: 0.33).opacity(0.4), radius: 10, y: 5)
+            Image(systemName: "xmark.circle.fill")
+              .font(.system(size: 32))
+              .foregroundStyle(.gray.opacity(0.7), .white)
           }
-          .padding(.horizontal, 40)
-          .padding(.top, 20)
-          
-          if track.previewUrl == nil {
-            Text("Preview unavailable for this track")
-                .font(.system(size: 12))
-                .foregroundColor(.gray)
-                .padding(.top, 4)
-          }
-
-          Spacer(minLength: 50)
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+
+        Spacer()
+          .frame(height: 32)
+
+        // Album Art - Large, centered with better sizing
+        AsyncImage(url: track.coverArtURL) { image in
+          image
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+        } placeholder: {
+          RoundedRectangle(cornerRadius: 16)
+            .fill(Color.gray.opacity(0.2))
+            .overlay(ProgressView())
+        }
+        .frame(width: 260, height: 260)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.2), radius: 25, y: 12)
+        .padding(.bottom, 48)
+
+        // Track Info - Centered with better spacing
+        VStack(spacing: 10) {
+          Text(track.trackName)
+            .font(.system(size: 24, weight: .bold))
+            .foregroundColor(.black)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+
+          Text(track.artistName)
+            .font(.system(size: 18, weight: .medium))
+            .foregroundColor(.black.opacity(0.7))
+
+          Text(track.albumName)
+            .font(.system(size: 16))
+            .foregroundColor(.black.opacity(0.5))
+            .lineLimit(1)
+        }
+        .padding(.horizontal, 32)
+        .padding(.bottom, 48)
+
+        // Play Button - Solid Spotify Green with proper toggle state
+        Button {
+          if isThisTrackPlaying {
+            appState.audioPlayer.pause()
+          } else {
+            appState.playTrackFromNode(track)
+          }
+        } label: {
+          HStack(spacing: 12) {
+            Image(systemName: isThisTrackPlaying ? "pause.fill" : "play.fill")
+              .font(.system(size: 20, weight: .bold))
+            Text(playButtonText)
+              .font(.system(size: 18, weight: .semibold))
+          }
+          .foregroundColor(.white)
+          .frame(width: 240, height: 56)
+          .background(
+            Capsule()
+              .fill(Color(red: 0.11, green: 0.73, blue: 0.33))
+          )
+        }
+        .padding(.bottom, 20)
+
+        if track.previewUrl == nil {
+          Text("Preview unavailable for this track")
+            .font(.system(size: 14))
+            .foregroundColor(.secondary)
+            .padding(.top, 4)
+        }
+
+        Spacer()
+          .frame(height: 60)
       }
+    }
+  }
+
+  // Computed property for button text based on state
+  private var playButtonText: String {
+    if track.previewUrl != nil {
+      return isThisTrackPlaying ? "Pause" : "Play Preview"
+    } else {
+      return "Play on Spotify"
     }
   }
 

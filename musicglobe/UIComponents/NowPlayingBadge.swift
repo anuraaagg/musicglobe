@@ -37,28 +37,46 @@ struct NowPlayingBadge: View {
       }
       .frame(width: 20, height: 16)
 
-      // Track name
-      Text(trackName)
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundColor(.primary)  // Readable on white/light
-        .lineLimit(1)
+      // Status and Track name - shows "Playing" or "Paused"
+      VStack(alignment: .leading, spacing: 2) {
+        Text(appState.audioPlayer.isPlaying ? "Playing" : "Paused")
+          .font(.system(size: 11, weight: .medium))
+          .foregroundColor(
+            appState.audioPlayer.isPlaying ? Color(red: 0.11, green: 0.73, blue: 0.33) : .secondary)
 
-      Spacer(minLength: 8)
+        Text(trackName)
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(.primary)
+          .lineLimit(1)
+          .truncationMode(.tail)
+      }
+      .frame(maxWidth: 150)  // Prevent expansion
 
       // Play/Pause Button
       Button {
-        appState.audioPlayer.toggle()
+        appState.togglePlayback()
       } label: {
-        Image(systemName: appState.audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+        let isPlaying =
+          (appState.currentPlayback?.isPlaying == true) || appState.audioPlayer.isPlaying
+        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
           .font(.system(size: 16))
           .foregroundColor(.primary)
       }
+
+      // Close Button
+      Button {
+        appState.stopPlayback()
+      } label: {
+        Image(systemName: "xmark")
+          .font(.system(size: 14, weight: .medium))
+          .foregroundColor(.secondary)
+      }
     }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 12)
+    .padding(.horizontal, 24)
+    .padding(.vertical, 14)
     .background(
       Capsule()
-        .fill(.ultraThinMaterial)
+        .fill(.regularMaterial)  // Stronger glass
         .overlay(
           // Liquid Glass Gloss
           LinearGradient(

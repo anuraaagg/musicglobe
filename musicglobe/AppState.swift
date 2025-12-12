@@ -5,6 +5,7 @@
 //  Central app state manager
 //
 
+import AVFoundation
 import Combine
 import SwiftUI
 
@@ -88,22 +89,31 @@ class AppState: ObservableObject {
         tracks = try await spotifyAPI.fetchRecentTracks(limit: 50)
       } else {
         // Aggregate tracks from valid playlists until we have enough
-        for playlist in playlists.prefix(10) {  // Check first 10 playlists
-          if tracks.count >= 100 { break }
+        // Prioritize tracks WITH previews to make app "fun" (Play Here functionality)
+        for playlist in playlists.prefix(20) {  // Check more playlists
+          if tracks.count >= 80 { break }
 
           print("📂 Fetching tracks from: \(playlist.name)")
-          // Spotify max limit per request is usually 50, so we might need multiple fetches
-          // For now we grab top 50 from each playlist to fill our 100 quota
-          let playlistTracks = try await spotifyAPI.fetchPlaylistTracks(
-            playlistId: playlist.id, limit: 50)
+          do {
+            let playlistTracks = try await spotifyAPI.fetchPlaylistTracks(
+              playlistId: playlist.id, limit: 50)
 
-          // Filter out empty/invalid tracks if any
-          let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
+            let validTracks = playlistTracks.filter { !$0.trackName.isEmpty }
 
-          let previewCount = validTracks.filter { $0.previewUrl != nil }.count
-          print("📊 Playlist '\(playlist.name)': \(previewCount)/\(validTracks.count) have previews")
+            // PRIORITIZE PREVIEWS, BUT KEEP OTHERS
+            let previewTracks = validTracks.filter { $0.previewUrl != nil }
+            let otherTracks = validTracks.filter { $0.previewUrl == nil }
 
-          tracks.append(contentsOf: validTracks)
+            print(
+              "📊 Playlist '\(playlist.name)': Found \(previewTracks.count) previews, \(otherTracks.count) others"
+            )
+
+            tracks.append(contentsOf: previewTracks)
+            tracks.append(contentsOf: otherTracks)  // Add others too
+
+          } catch {
+            print("⚠️ Failed to fetch playlist \(playlist.name): \(error)")
+          }
         }
 
         // If still minimal data (e.g. all playlists empty), fallback to history
@@ -193,5 +203,39 @@ class AppState: ObservableObject {
         showingError = true
       }
     }
+  }
+
+  func togglePlayback() {
+    // 1. In-App Preview
+    if audioPlayer.isPlaying {
+      audioPlayer.pause()
+      return
+    }
+
+    // 2. Resume In-App if available
+    if audioPlayer.player?.currentItem != nil {
+      audioPlayer.toggle()
+      return
+    }
+
+    // 3. Spotify Remote
+    if let playback = currentPlayback, playback.isPlaying {
+      Task {
+        try? await spotifyAPI.pause()
+        await MainActor.run { currentPlayback?.isPlaying = false }
+      }
+    } else {
+      Task {
+        try? await spotifyAPI.resume()
+        await MainActor.run { currentPlayback?.isPlaying = true }
+      }
+    }
+  }
+
+  func stopPlayback() {
+    audioPlayer.player?.pause()
+    currentPlayback = nil
+    playingTrackNode = nil
+    Task { try? await spotifyAPI.pause() }
   }
 }
