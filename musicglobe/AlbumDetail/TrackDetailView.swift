@@ -61,55 +61,49 @@ struct TrackDetailView: View {
       }
 
       VStack(spacing: 0) {
-        // Native sheet grabber - Apple uses 8pt top padding
+        // Grabber
         Capsule()
-          .fill(Color(white: 0.8))
+          .fill(Color(white: 0.75))
           .frame(width: 36, height: 5)
           .padding(.top, 8)
+          .padding(.bottom, 20)
 
-        Spacer()
-          .frame(minHeight: 32, maxHeight: 60)
-
-        // Album Art - Large, centered
+        // Album Art - Smaller, compact
         AsyncImage(url: track.coverArtURL) { image in
           image
             .resizable()
             .aspectRatio(contentMode: .fill)
         } placeholder: {
-          RoundedRectangle(cornerRadius: 12)
+          RoundedRectangle(cornerRadius: 10)
             .fill(Color.gray.opacity(0.2))
             .overlay(ProgressView())
         }
-        .frame(width: 280, height: 280)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
+        .frame(width: 220, height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .shadow(color: .black.opacity(0.12), radius: 15, y: 8)
+        .padding(.bottom, 24)
 
-        Spacer()
-          .frame(height: 32)
-
-        // Track Info - Centered like Apple Music
-        VStack(spacing: 8) {
+        // Track Info - Compact
+        VStack(spacing: 6) {
           Text(track.trackName)
-            .font(.system(size: 22, weight: .bold))
+            .font(.system(size: 20, weight: .bold))
             .foregroundColor(.primary)
             .multilineTextAlignment(.center)
             .lineLimit(2)
 
           Text(track.artistName)
-            .font(.system(size: 17, weight: .medium))
+            .font(.system(size: 15, weight: .medium))
             .foregroundColor(.secondary)
 
           Text(track.albumName)
-            .font(.system(size: 15))
-            .foregroundColor(.secondary.opacity(0.8))
+            .font(.system(size: 14))
+            .foregroundColor(.secondary.opacity(0.7))
             .lineLimit(1)
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 32)
+        .padding(.bottom, 28)
 
-        Spacer()
-          .frame(minHeight: 32, maxHeight: 48)
-
-        // Play Button - Spotify Green
+        // Play Button - Compact
         Button {
           if isThisTrackPlaying {
             appState.togglePlayback()
@@ -117,14 +111,14 @@ struct TrackDetailView: View {
             appState.playTrackFromNode(track)
           }
         } label: {
-          HStack(spacing: 10) {
+          HStack(spacing: 8) {
             Image(systemName: isThisTrackPlaying ? "pause.fill" : "play.fill")
-              .font(.system(size: 18, weight: .bold))
+              .font(.system(size: 16, weight: .bold))
             Text(playButtonText)
-              .font(.system(size: 17, weight: .semibold))
+              .font(.system(size: 16, weight: .semibold))
           }
           .foregroundColor(.white)
-          .frame(width: 220, height: 50)
+          .frame(width: 200, height: 46)
           .background(
             Capsule()
               .fill(Color(red: 0.11, green: 0.73, blue: 0.33))
@@ -133,13 +127,12 @@ struct TrackDetailView: View {
 
         if track.previewUrl == nil {
           Text("Preview unavailable for this track")
-            .font(.system(size: 13))
+            .font(.system(size: 12))
             .foregroundColor(.secondary)
-            .padding(.top, 12)
+            .padding(.top, 10)
         }
 
         Spacer()
-          .frame(minHeight: 40, maxHeight: 80)
       }
     }
   }
