@@ -24,28 +24,52 @@ struct TrackDetailView: View {
 
   var body: some View {
     ZStack {
-      // Clean Gradient Background - no more liquid blur effect
-      LinearGradient(
-        colors: [
-          Color(red: 0.95, green: 0.93, blue: 0.91),
-          Color(red: 0.88, green: 0.86, blue: 0.84),
-          Color(red: 0.82, green: 0.78, blue: 0.76),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-      .ignoresSafeArea()
+      // Clean Liquid Glass Background
+      if let url = track.coverArtURL {
+        AsyncImage(url: url) { image in
+          image
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .blur(radius: 80)
+            .saturation(0.8)
+            .overlay(
+              // Clean white frost overlay
+              Color.white.opacity(0.45)
+            )
+            .overlay(
+              // Subtle gradient for depth
+              LinearGradient(
+                colors: [
+                  Color.white.opacity(0.3),
+                  Color.clear,
+                  Color.black.opacity(0.05),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+              )
+            )
+            .ignoresSafeArea()
+        } placeholder: {
+          // Fallback while loading
+          Color(white: 0.95)
+            .ignoresSafeArea()
+        }
+      } else {
+        Color(white: 0.95)
+          .ignoresSafeArea()
+      }
 
       VStack(spacing: 0) {
         // Native sheet grabber indicator
         Capsule()
-          .fill(Color.gray.opacity(0.4))
+          .fill(Color.gray.opacity(0.5))
           .frame(width: 36, height: 5)
           .padding(.top, 12)
-          .padding(.bottom, 24)
+          .padding(.bottom, 20)
 
         Spacer()
-          .frame(height: 16)
+          .frame(height: 24)
 
         // Album Art - Large, centered with better sizing
         AsyncImage(url: track.coverArtURL) { image in
@@ -85,7 +109,8 @@ struct TrackDetailView: View {
         // Play Button - Solid Spotify Green with proper toggle state
         Button {
           if isThisTrackPlaying {
-            appState.audioPlayer.pause()
+            // Use togglePlayback which handles both preview and Spotify
+            appState.togglePlayback()
           } else {
             appState.playTrackFromNode(track)
           }
