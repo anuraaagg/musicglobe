@@ -103,7 +103,7 @@ struct TrackDetailView: View {
         .padding(.horizontal, 32)
         .padding(.bottom, 28)
 
-        // Play Button - Compact
+        // Play Button - Neumorphic Soft UI Style
         Button {
           if isThisTrackPlaying {
             appState.togglePlayback()
@@ -111,17 +111,32 @@ struct TrackDetailView: View {
             appState.playTrackFromNode(track)
           }
         } label: {
-          HStack(spacing: 8) {
+          HStack(spacing: 10) {
             Image(systemName: isThisTrackPlaying ? "pause.fill" : "play.fill")
-              .font(.system(size: 16, weight: .bold))
-            Text(playButtonText)
               .font(.system(size: 16, weight: .semibold))
+            Text(playButtonText)
+              .font(.system(size: 17, weight: .medium))
           }
-          .foregroundColor(.white)
-          .frame(width: 200, height: 46)
+          .foregroundColor(.primary.opacity(0.85))
+          .frame(height: 52)
+          .padding(.horizontal, 36)
           .background(
             Capsule()
-              .fill(Color(red: 0.11, green: 0.73, blue: 0.33))
+              .fill(Color(white: 0.97))
+              .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
+              .shadow(color: Color.white.opacity(0.9), radius: 4, x: 0, y: -2)
+          )
+          .overlay(
+            Capsule()
+              .stroke(Color.white.opacity(0.6), lineWidth: 1)
+          )
+          .overlay(
+            // Inner shadow effect
+            Capsule()
+              .stroke(Color.black.opacity(0.04), lineWidth: 1)
+              .blur(radius: 1)
+              .offset(y: 1)
+              .mask(Capsule())
           )
         }
 

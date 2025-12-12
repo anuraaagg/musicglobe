@@ -57,31 +57,32 @@ struct WelcomeView: View {
           } label: {
             HStack(spacing: 12) {
               Image(systemName: "music.note")
-                .font(.system(size: 20))
+                .font(.system(size: 18, weight: .medium))
               Text("Connect with Spotify")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 17, weight: .medium))
             }
-            .foregroundColor(.white)
+            .foregroundColor(.primary.opacity(0.85))
+            .frame(height: 56)
             .padding(.horizontal, 32)
-            .padding(.vertical, 16)
             .background(
-              // iOS Dock Bar Style: Clean frosted glass
+              // Neumorphic Soft UI background
               Capsule()
-                .fill(.regularMaterial)
-                .overlay(
-                  // Subtle inner highlight at top
-                  Capsule()
-                    .stroke(
-                      LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.1), .clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                      ),
-                      lineWidth: 1
-                    )
-                )
+                .fill(Color(white: 0.96))
+                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                .shadow(color: Color.white.opacity(0.95), radius: 6, x: 0, y: -3)
             )
-            .clipShape(Capsule())  // Ensure clean edges
+            .overlay(
+              Capsule()
+                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+            )
+            .overlay(
+              // Inner shadow effect
+              Capsule()
+                .stroke(Color.black.opacity(0.03), lineWidth: 1)
+                .blur(radius: 1)
+                .offset(y: 1)
+                .mask(Capsule())
+            )
           }
           .accessibilityLabel("Connect with Spotify")
           .accessibilityHint("Double tap to sign in with your Spotify account")
