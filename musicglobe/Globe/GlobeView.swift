@@ -34,6 +34,8 @@ struct GlobeView: View {
       if let track = appState.selectedTrack {
         TrackDetailView(track: track)
           .environmentObject(appState)
+          .presentationDetents([.medium, .large])
+          .presentationDragIndicator(.hidden)
       }
     }
     .alert("Error", isPresented: $appState.showingError) {

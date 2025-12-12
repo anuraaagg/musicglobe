@@ -65,9 +65,8 @@ struct TrackDetailView: View {
         Capsule()
           .fill(Color(white: 0.75))
           .frame(width: 36, height: 5)
-          .padding(.top, 8)
-
-        Spacer()
+          .padding(.top, 24)
+          .padding(.bottom, 24)
 
         // Album Art - Smaller, compact
         AsyncImage(url: track.coverArtURL) { image in
@@ -147,9 +146,8 @@ struct TrackDetailView: View {
             .foregroundColor(.secondary)
             .padding(.top, 10)
         }
-
-        Spacer()
       }
+      .padding(.bottom, 24)
     }
   }
 
