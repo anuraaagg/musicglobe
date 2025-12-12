@@ -12,9 +12,14 @@ struct TrackDetailView: View {
   @EnvironmentObject var appState: AppState
   @Environment(\.dismiss) var dismiss
 
-  // Track if this specific track is currently playing
+  // Track if this specific track is currently playing (either in-app or via Spotify)
   private var isThisTrackPlaying: Bool {
-    appState.audioPlayer.isPlaying && appState.playingTrackNode?.trackId == track.trackId
+    let isPreviewPlaying =
+      appState.audioPlayer.isPlaying && appState.playingTrackNode?.trackId == track.trackId
+    let isSpotifyPlaying =
+      appState.currentPlayback?.isPlaying == true
+      && appState.playingTrackNode?.trackId == track.trackId
+    return isPreviewPlaying || isSpotifyPlaying
   }
 
   var body: some View {
@@ -32,22 +37,15 @@ struct TrackDetailView: View {
       .ignoresSafeArea()
 
       VStack(spacing: 0) {
-        // Header with close button - more padding
-        HStack {
-          Spacer()
-          Button {
-            dismiss()
-          } label: {
-            Image(systemName: "xmark.circle.fill")
-              .font(.system(size: 32))
-              .foregroundStyle(.gray.opacity(0.7), .white)
-          }
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 20)
+        // Native sheet grabber indicator
+        Capsule()
+          .fill(Color.gray.opacity(0.4))
+          .frame(width: 36, height: 5)
+          .padding(.top, 12)
+          .padding(.bottom, 24)
 
         Spacer()
-          .frame(height: 32)
+          .frame(height: 16)
 
         // Album Art - Large, centered with better sizing
         AsyncImage(url: track.coverArtURL) { image in
@@ -122,8 +120,10 @@ struct TrackDetailView: View {
 
   // Computed property for button text based on state
   private var playButtonText: String {
-    if track.previewUrl != nil {
-      return isThisTrackPlaying ? "Pause" : "Play Preview"
+    if isThisTrackPlaying {
+      return "Pause"
+    } else if track.previewUrl != nil {
+      return "Play Preview"
     } else {
       return "Play on Spotify"
     }
