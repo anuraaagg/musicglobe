@@ -12,7 +12,8 @@ struct WelcomeView: View {
   @State private var isAnimating = false
   @State private var pulse = false
   @State private var dragOffset: CGSize = .zero
-  @State private var pulseGradient = false
+  @State private var gradientOffset: CGSize = .zero
+  @State private var grainPhase: Double = 0
 
   var body: some View {
     ZStack {
@@ -20,32 +21,56 @@ struct WelcomeView: View {
       Color.black
         .ignoresSafeArea()
 
-      // 2. Central Glowing Aura (Animated)
+      // 2. Animated Moving Gradient Glow
       ZStack {
-        // Outer glow
+        // Outer glow - shifts position
         Circle()
           .fill(
             RadialGradient(
               colors: [
-                Color(red: 0.8, green: 0.9, blue: 0.4).opacity(0.6),  // Lime/Yellow center
-                Color(red: 0.11, green: 0.73, blue: 0.33).opacity(0.3),  // Spotify Green mid
+                Color(red: 0.8, green: 0.9, blue: 0.4).opacity(0.5),
+                Color(red: 0.11, green: 0.73, blue: 0.33).opacity(0.25),
                 Color.clear,
               ],
               center: .center,
               startRadius: 0,
-              endRadius: 300
+              endRadius: 350
             )
           )
-          .frame(width: 600, height: 600)
-          .blur(radius: 80)
+          .frame(width: 700, height: 700)
+          .blur(radius: 100)
+          .offset(gradientOffset)
 
-        // Inner core
+        // Secondary glow - opposite movement
         Circle()
-          .fill(Color(red: 0.8, green: 0.95, blue: 0.6))
-          .frame(width: 250, height: 250)
-          .blur(radius: 60)
-          .scaleEffect(pulse ? 1.05 : 0.95)
+          .fill(
+            RadialGradient(
+              colors: [
+                Color(red: 0.6, green: 0.95, blue: 0.5).opacity(0.4),
+                Color.clear,
+              ],
+              center: .center,
+              startRadius: 0,
+              endRadius: 200
+            )
+          )
+          .frame(width: 400, height: 400)
+          .blur(radius: 80)
+          .offset(x: -gradientOffset.width * 0.5, y: -gradientOffset.height * 0.5)
+
+        // Inner core - pulses
+        Circle()
+          .fill(Color(red: 0.85, green: 0.95, blue: 0.6))
+          .frame(width: 200, height: 200)
+          .blur(radius: 70)
+          .scaleEffect(pulse ? 1.1 : 0.9)
       }
+
+      // 3. Film Grain Overlay
+      GrainOverlay(phase: grainPhase)
+        .opacity(0.04)
+        .blendMode(.overlay)
+        .ignoresSafeArea()
 
       // 3. Main Content
       VStack {
@@ -116,10 +141,39 @@ struct WelcomeView: View {
       }
     }
     .onAppear {
+      // Pulse animation
       withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
         pulse = true
       }
-      pulseGradient = true
+      // Gradient movement animation
+      withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
+        gradientOffset = CGSize(width: 50, height: 30)
+      }
+      // Grain animation
+      Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        grainPhase = Double.random(in: 0...1000)
+      }
+    }
+  }
+}
+
+// MARK: - Film Grain Overlay
+struct GrainOverlay: View {
+  let phase: Double
+  
+  var body: some View {
+    Canvas { context, size in
+      // Generate random noise pattern
+      for _ in 0..<Int(size.width * size.height * 0.01) {
+        let x = CGFloat.random(in: 0...size.width)
+        let y = CGFloat.random(in: 0...size.height)
+        let opacity = Double.random(in: 0.3...1.0)
+        
+        context.fill(
+          Path(ellipseIn: CGRect(x: x, y: y, width: 1.5, height: 1.5)),
+          with: .color(.white.opacity(opacity))
+        )
+      }
     }
   }
 }
